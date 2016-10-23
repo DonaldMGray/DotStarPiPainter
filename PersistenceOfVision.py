@@ -48,15 +48,13 @@ from PIL import Image
 # CONFIGURABLE STUFF -------------------------------------------------------
 
 num_leds   = 144    # Length of LED strip, in pixels
-pin_go     = 22     # GPIO pin numbers (Broadcom numbering) for 'go' button,
+pin_mode     = 22     # GPIO pin numbers (Broadcom numbering) for 'mode' button,
 pin_next   = 17     # previous image, next image and speed +/-.
 pin_prev   =  4
 pin_faster = 23
 pin_slower = 24
-order      = 'brg'  # 'brg' for current DotStars, 'gbr' for pre-2015 strips
+order      = 'bgr'  # 'brg' for current DotStars, 'gbr' for pre-2015 strips
 vflip      = 'true' # 'true' if strip input at bottom, else 'false'
-
-useMouse = 'true'
 
 # DotStar strip data & clock MUST connect to hardware SPI pins
 # (GPIO 10 & 11).  12000000 (12 MHz) is the SPI clock rate; this is the
@@ -80,7 +78,7 @@ power_settings = (1450, 1550)    # Battery avg and peak current
 # Set control pins to inputs and enable pull-up resistors.
 # Buttons should connect between these pins and ground.
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(pin_go    , GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(pin_mode    , GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(pin_prev  , GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(pin_next  , GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(pin_slower, GPIO.IN, pull_up_down=GPIO.PUD_UP)
@@ -91,10 +89,10 @@ strip.begin() # Initialize SPI pins for output
 ledBuf     = strip.getPixels() # Pointer to 'raw' LED strip data
 clearBuf   = bytearray([0xFF, 0, 0, 0] * num_leds)
 imgNum     = 0    # Index of currently-active image
-duration   = 0.1  # Image paint time, in seconds
+duration   = 0.08  # Image paint time, in seconds
 filename   = None # List of image files (nothing loaded yet)
 lightpaint = None # LightPaint object for currently-active image (none yet)
-
+slideShow  = True # Start in slideshow mode vs single image
 
 # FUNCTIONS ----------------------------------------------------------------
 
@@ -196,7 +194,7 @@ def loadImage(index):
 	return lightpaint
 
 def btn():
-	if not GPIO.input(pin_go):     return 1
+	if not GPIO.input(pin_mode):   return 1
 	if not GPIO.input(pin_faster): return 2
 	if not GPIO.input(pin_slower): return 3
 	if not GPIO.input(pin_next):   return 4
@@ -205,14 +203,16 @@ def btn():
 
 # MAIN LOOP ----------------------------------------------------------------
 
-# Init some stuff for speed selection...
-max_time    = 0.5
-min_time    =  0.01
+# Init some stuff for speed selection of how long to show images
+max_time    = 0.4
+min_time    =  0.02 # a good time is around .04
 time_range  = (max_time - min_time)
 speed_pixel = int(num_leds * (duration - min_time) / time_range) 
 duration    = min_time + time_range * speed_pixel / (num_leds - 1) #sweep duration in seconds
 prev_btn    = 0
 rep_time    = 0.2
+slideShowTime = 4 # time to show each image when in slideShow mode
+slideStartTime = time.time()
 
 scandir() # USB drive might already be inserted
 signal.signal(signal.SIGUSR1, sigusr1_handler) # USB mount signal
@@ -222,7 +222,11 @@ try:
 	while True:
 		#check for button pushes
 		b = btn()
-		if b == 2:
+		if b == 1:
+			# mode change from show one image to slideshow 
+                        slideShow = not slideShow
+                        time.sleep(0.2) #debounce
+		elif b == 2:
 			# Decrease paint duration
 			if speed_pixel > 0:
 				speed_pixel -= 1
@@ -235,6 +239,7 @@ try:
 			  rep_time)): continue
 			strip.clear()
 			strip.show()
+                        print "show duration: %f seconds" % (duration)
 		elif b == 3:
 			# Increase paint duration (up to 10 sec maximum)
 			if speed_pixel < num_leds - 1:
@@ -248,6 +253,7 @@ try:
 			  rep_time)): continue
 			strip.clear()
 			strip.show()
+                        print "show duration: %f seconds" % (duration)
 		elif b == 4 and filename != None:
 			# Next image (if USB drive present)
 			imgNum += 1
@@ -272,7 +278,13 @@ try:
 
 		if lightpaint != None:
 			# Paint!
-			startTime = time.time()
+                        if slideShow:
+                            if (time.time() - slideStartTime) >= slideShowTime: #time for next image
+			        imgNum += 1
+			        if imgNum >= len(filename): imgNum = 0
+			        lightpaint = loadImage(imgNum)
+                                slideStartTime = time.time()
+                        startTime = time.time()
 			while True:
 				t1        = time.time()
 				elapsed   = t1 - startTime
