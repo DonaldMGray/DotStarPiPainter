@@ -229,18 +229,24 @@ def btn():
 #generate the list of pulses
 def createPulseDesign(ledLen):
     #this block is a set of wide pulses that travel together to create a background wash
-    gs1 = pulses.GaussCtl(arrayLen=ledLen, startCtr=-80, width=50, rate=1.0, color=pulses.Color(255,0,128))
-    gs2 = pulses.GaussCtl(arrayLen=ledLen, startCtr=0, width=50, rate=1.0, color=pulses.Color(128,128,0))
-    gs3 = pulses.GaussCtl(arrayLen=ledLen, startCtr=80, width=50, rate=1.0, color=pulses.Color(0,128,128))
-    gs4 = pulses.GaussCtl(arrayLen=ledLen, startCtr=160, width=50, rate=1.0, color=pulses.Color(100,128,158))
+	# "width" is the sigma of the gaussian
+    gs1 = pulses.GaussCtl(arrayLen=ledLen, startCtr=80, width=25, rate=1.0, color=pulses.Color(255,0,128))
+    gs2 = pulses.GaussCtl(arrayLen=ledLen, startCtr=150, width=25, rate=1.0, color=pulses.Color(128,200,0))
+    gs3 = pulses.GaussCtl(arrayLen=ledLen, startCtr=0, width=25, rate=1.0, color=pulses.Color(0,128,128))
+    gs4 = pulses.GaussCtl(arrayLen=ledLen, startCtr=160, width=25, rate=1.0, color=pulses.Color(100,128,158))
     
-    gsr = pulses.GaussCtl(arrayLen=ledLen, startCtr=-80, width=50, rate=1.0, color=pulses.Color(255,0,0))
+	#evenly space them at 2 sigma intervals apart
+    gsr = pulses.GaussCtl(arrayLen=ledLen, startCtr= 80, width=25, rate=1.0, color=pulses.Color(255,0,0))
+    gsg = pulses.GaussCtl(arrayLen=ledLen, startCtr= 150, width=25, rate=1.0, color=pulses.Color(0,255,0))
+    gsb = pulses.GaussCtl(arrayLen=ledLen, startCtr= 0, width=25, rate=1.0, color=pulses.Color(0,0,255))
+
     # a couple smaller & faster pulses
-    gs5 = pulses.GaussCtl(arrayLen=ledLen, startCtr=40, width=5, rate=4.0, color=pulses.Color(0,25,255))
+    gs5 = pulses.GaussCtl(arrayLen=ledLen, startCtr=40, width=5, rate=4.0, color=pulses.Color(0,25,155))
+    gs5.border = 200 #bigger border keeps it off the display longer
     gs6 = pulses.GaussCtl(arrayLen=ledLen, startCtr=100, width=3, rate=-6.5, color=pulses.Color(120,255,255))
-    gs6.border = 100 #bigger border keeps it off the display longer
-    #gsList = [gs1, gs2, gs3, gs4, gs5, gs6]
-    gsList = [gsr, gs5, gs6]
+    gs6.border = 500 #bigger border keeps it off the display longer
+    gsList = [gs1, gs2, gs3,   gs5, gs6]
+    #gsList = [gsr, gsg, gsb]
     return gsList
 
 # MAIN LOOP ----------------------------------------------------------------
@@ -255,7 +261,7 @@ prev_btn    = 0
 rep_time    = 0.2
 slideShowTime = 4 # time to show each image when in slideShow mode
 slideStartTime = time.time()
-POVShowTime = 30 	#how long to run the POV before going to soothe mode
+POVShowTime = 60 	#how long to run the POV before going to soothe mode
 POVStartTime = time.time()
 
 scandir() # USB drive might already be inserted
@@ -264,7 +270,7 @@ signal.signal(signal.SIGUSR2, sigusr2_handler) # USB unmount signal
 
 #generate the list of pulses for soothing mode
 pulseList = createPulseDesign(num_leds)
-framerate = 20
+framerate = 24
 flip = True
 try:
 	#main loop
@@ -331,30 +337,39 @@ try:
 		if (currMode != Mode.soothe) and (time.time() - POVStartTime >= POVShowTime) :
 			currMode = Mode.soothe
 
+		#temp speed checking stuff
+		gsr = pulses.GaussCtl(arrayLen=num_leds, startCtr= 72, width=25, rate=1.0, color=pulses.Color(255,0,0))
+		gsg = pulses.GaussCtl(arrayLen=num_leds, startCtr= 140, width=25, rate=1.0, color=pulses.Color(0,255,0))
+		tmpr = pulses.makeGaussianFast(gsr)
+		tmpg = pulses.makeGaussianFast(gsg)
+		byter= pulses.byteArray(tmpr)  #make a bytearray
+		byteg= pulses.byteArray(tmpg)  #make a bytearray
+		#done speed stuff
 
 		#run the display
 		if lightpaint != None:
 			# Paint!
-                        while False:
-                            out1 = pulses.makeGaussianFast(tmp1)
-                            #byte1 = pulses.byteArray(out1)
-                            if flip:
-                                strip.show(byte1)
-                            else:
-                                strip.show(byte2)
-                            flip =  not flip
-                            time.sleep(.01)
-                        if currMode == Mode.soothe:
-    			    #generate the pulse display
-                            list(map(lambda x:x.update(), pulseList))   #update all pulse controls
-                            colorArrays = [pulses.makeGaussianFast(x) for x in pulseList] #build a ColorArray for each pulse
-                            outArray = sum(colorArrays) #add them all together (clamping built in)
-                            byteArray = pulses.byteArray(outArray)  #make a bytearray
-                            strip.show(byteArray)  #display it
-                            #pause for frame rate (does not factor in code delays) let the button reads happen in between.
-                            # Having the button parsing run in interrupt routine would be good improvement
-                            time.sleep(1/framerate)  
-                        else:  #doing a POV
+			while False: #see how fast we can render - per timeTest, seem to be limited by the Color construction
+				for i in range(5):
+					tmpr = pulses.makeGaussianFast(gsr)
+					#byte1 = pulses.byteArray(tmpr)
+				if flip:
+					strip.show(byter)
+				else:
+					strip.show(byteg)
+				flip =  not flip
+				#time.sleep(.01)
+			if currMode == Mode.soothe:
+				#generate the pulse display
+				list(map(lambda x:x.update(), pulseList))   #update all pulse controls
+				colorArrays = [pulses.makeGaussianFast(x) for x in pulseList] #build a ColorArray for each pulse
+				outArray = sum(colorArrays) #add them all together (clamping built in)
+				byteArray = pulses.byteArray(outArray)  #make a bytearray
+				strip.show(byteArray)  #display it
+				#pause for frame rate (does not factor in code delays) let the button reads happen in between.
+				#code delay is so long, we remove this
+				#time.sleep(1/framerate)  
+			else:  #doing a POV
 				if currMode == Mode.slideshow:
 					#update the image if needed
 					if (time.time() - slideStartTime) >= slideShowTime: #time for next image

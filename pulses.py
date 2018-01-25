@@ -42,7 +42,7 @@ class GaussCtl():
         self.rate = rate    #how much to shift the pulse per update 
         self.color = color  #Color class
         self.currCtr = startCtr
-        self.border = width*2   #how far to let the center be from the display before restarting
+        self.border = width*3   #how far to let the center be from the display before restarting
     def update(self):
         self.currCtr = self.currCtr + self.rate
         #once it moves past the display, move it to the other side (offset by border)
