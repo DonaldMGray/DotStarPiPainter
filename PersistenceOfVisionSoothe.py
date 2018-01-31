@@ -230,20 +230,20 @@ def btn():
 def createPulseDesign(ledLen):
     #this block is a set of wide pulses that travel together to create a background wash
 	# "width" is the sigma of the gaussian
-    gs1 = pulses.GaussCtl(arrayLen=ledLen, startCtr=80, width=25, rate=1.0, color=pulses.Color(255,0,128))
-    gs2 = pulses.GaussCtl(arrayLen=ledLen, startCtr=150, width=25, rate=1.0, color=pulses.Color(128,200,0))
-    gs3 = pulses.GaussCtl(arrayLen=ledLen, startCtr=0, width=25, rate=1.0, color=pulses.Color(0,128,128))
-    gs4 = pulses.GaussCtl(arrayLen=ledLen, startCtr=160, width=25, rate=1.0, color=pulses.Color(100,128,158))
+    gs1 = pulses.PulseCtl(arrayLen=ledLen, startCtr=80, width=25, rate=1.0, color=pulses.Color(255,0,128))
+    gs2 = pulses.PulseCtl(arrayLen=ledLen, startCtr=150, width=25, rate=1.0, color=pulses.Color(128,200,0))
+    gs3 = pulses.PulseCtl(arrayLen=ledLen, startCtr=0, width=25, rate=1.0, color=pulses.Color(0,128,128))
+    gs4 = pulses.PulseCtl(arrayLen=ledLen, startCtr=160, width=25, rate=1.0, color=pulses.Color(100,128,158))
     
 	#evenly space them at 2 sigma intervals apart
-    gsr = pulses.GaussCtl(arrayLen=ledLen, startCtr= 80, width=25, rate=1.0, color=pulses.Color(255,0,0))
-    gsg = pulses.GaussCtl(arrayLen=ledLen, startCtr= 150, width=25, rate=1.0, color=pulses.Color(0,255,0))
-    gsb = pulses.GaussCtl(arrayLen=ledLen, startCtr= 0, width=25, rate=1.0, color=pulses.Color(0,0,255))
+    gsr = pulses.PulseCtl(arrayLen=ledLen, startCtr= 80, width=25, rate=1.0, color=pulses.Color(255,0,0))
+    gsg = pulses.PulseCtl(arrayLen=ledLen, startCtr= 150, width=25, rate=1.0, color=pulses.Color(0,255,0))
+    gsb = pulses.PulseCtl(arrayLen=ledLen, startCtr= 0, width=25, rate=1.0, color=pulses.Color(0,0,255))
 
     # a couple smaller & faster pulses
-    gs5 = pulses.GaussCtl(arrayLen=ledLen, startCtr=40, width=5, rate=4.0, color=pulses.Color(0,25,155))
+    gs5 = pulses.PulseCtl(arrayLen=ledLen, startCtr=40, width=5, rate=4.0, color=pulses.Color(0,25,155))
     gs5.border = 200 #bigger border keeps it off the display longer
-    gs6 = pulses.GaussCtl(arrayLen=ledLen, startCtr=100, width=3, rate=-6.5, color=pulses.Color(120,255,255))
+    gs6 = pulses.PulseCtl(arrayLen=ledLen, startCtr=100, width=3, rate=-6.5, color=pulses.Color(120,255,255))
     gs6.border = 500 #bigger border keeps it off the display longer
     gsList = [gs1, gs2, gs3,   gs5, gs6]
     #gsList = [gsr, gsg, gsb]
@@ -338,10 +338,10 @@ try:
 			currMode = Mode.soothe
 
 		#temp speed checking stuff
-		gsr = pulses.GaussCtl(arrayLen=num_leds, startCtr= 72, width=25, rate=1.0, color=pulses.Color(255,0,0))
-		gsg = pulses.GaussCtl(arrayLen=num_leds, startCtr= 140, width=25, rate=1.0, color=pulses.Color(0,255,0))
-		tmpr = pulses.makeGaussianFast(gsr)
-		tmpg = pulses.makeGaussianFast(gsg)
+		gsr = pulses.PulseCtl(arrayLen=num_leds, startCtr= 72, width=25, rate=1.0, color=pulses.Color(255,0,0))
+		gsg = pulses.PulseCtl(arrayLen=num_leds, startCtr= 140, width=25, rate=1.0, color=pulses.Color(0,255,0))
+		tmpr = pulses.makePulseFast(gsr)
+		tmpg = pulses.makePulseFast(gsg)
 		byter= pulses.byteArray(tmpr)  #make a bytearray
 		byteg= pulses.byteArray(tmpg)  #make a bytearray
 		#done speed stuff
@@ -351,7 +351,7 @@ try:
 			# Paint!
 			while False: #see how fast we can render - per timeTest, seem to be limited by the Color construction
 				for i in range(5):
-					tmpr = pulses.makeGaussianFast(gsr)
+					tmpr = pulses.makePulseFast(gsr)
 					#byte1 = pulses.byteArray(tmpr)
 				if flip:
 					strip.show(byter)
@@ -362,7 +362,7 @@ try:
 			if currMode == Mode.soothe:
 				#generate the pulse display
 				list(map(lambda x:x.update(), pulseList))   #update all pulse controls
-				colorArrays = [pulses.makeGaussianFast(x) for x in pulseList] #build a ColorArray for each pulse
+				colorArrays = [pulses.makePulseFast(x) for x in pulseList] #build a ColorArray for each pulse
 				outArray = sum(colorArrays) #add them all together (clamping built in)
 				byteArray = pulses.byteArray(outArray)  #make a bytearray
 				strip.show(byteArray)  #display it

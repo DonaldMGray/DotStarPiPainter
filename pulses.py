@@ -30,7 +30,7 @@ class Color(ColorT):
     def __add__(self, other):
         return Color(*([self.clamp(sum(x)) for x in zip(self, other)]))
         
-class GaussCtl():
+class PulseCtl():
     """
     A class to hold control and current status (eg: location) of a Guassian shape
     Has notion of size of array to be rendered onto and can be updated to shift over time
@@ -67,31 +67,34 @@ class ColorList(list):
         if type(other) == int: return self    #this is to support sum, which starts by adding to '0'
         return other + self
 
-def makeGaussianFast(gauss):	
-#	pdf = np.exp(-np.power( np.array(range(100)) - 50, 2.) / (2 * np.power(5, 2.)))
-	pdf = np.exp(-np.power( np.array(range(gauss.arrayLen)) - gauss.currCtr, 2.) / (2 * np.power(gauss.width, 2.)))
+def makePulseFast(pulse):	
+	"""
+	Generate a ColorList given a PulseCtl
+	"""
+	#	pdf = np.exp(-np.power( np.array(range(100)) - 50, 2.) / (2 * np.power(5, 2.)))
+	pdf = np.exp(-np.power( np.array(range(pulse.arrayLen)) - pulse.currCtr, 2.) / (2 * np.power(pulse.width, 2.)))
 	#scale the color by the gaussian pulse and build into array of colors
 	# if we wanted to handle 'tight' wrapping, we could see if the center was within 2 sigma of an edge
 	# then calc the modulus for the center to get the tail to come in at the other side
-	tmp = [Color(int(pdf[x]*gauss.color.r), int(pdf[x]*gauss.color.g), int(pdf[x]*gauss.color.b)) for x in range(gauss.arrayLen)]
+	tmp = [Color(int(pdf[x]*pulse.color.r), int(pdf[x]*pulse.color.g), int(pdf[x]*pulse.color.b)) for x in range(pulse.arrayLen)]
 	ledColorArray = ColorList(tmp)
 	return ledColorArray
 				
 
-def makeGaussian(gauss):
+def makePulse(pulse):
     """
-    Generate a ColorList given a GaussCtl
+    Generate a ColorList given a PulseCtl
     """
     #fill array with normal distrib, offset as appropriate
-    rv = norm(loc = gauss.currCtr, scale = gauss.width)
-    x = range(0, gauss.arrayLen)
-    maxPdf = rv.pdf(gauss.currCtr)  #use max value to normalize the height of the pdf
+    rv = norm(loc = pulse.currCtr, scale = pulse.width)
+    x = range(0, pulse.arrayLen)
+    maxPdf = rv.pdf(pulse.currCtr)  #use max value to normalize the height of the pdf
     pdf = [rv.pdf(xx)/maxPdf for xx in x]   #generate a pdf with normalized height 
     
     #scale the color by the gaussian pulse and build into array of colors
     # if we wanted to handle 'tight' wrapping, we could see if the center was within 2 sigma of an edge
     # then calc the modulus for the center to get the tail to come in at the other side
-    tmp = [Color(int(pdf[x]*gauss.color.r), int(pdf[x]*gauss.color.g), int(pdf[x]*gauss.color.b)) for x in range(gauss.arrayLen)]
+    tmp = [Color(int(pdf[x]*pulse.color.r), int(pdf[x]*pulse.color.g), int(pdf[x]*pulse.color.b)) for x in range(pulse.arrayLen)]
     ledColorArray = ColorList(tmp)
     return ledColorArray
     
