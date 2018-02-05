@@ -43,6 +43,7 @@ import os
 import select
 import signal
 import time
+import datetime
 import RPi.GPIO as GPIO
 from dotstar import Adafruit_DotStar
 from evdev import InputDevice, ecodes
@@ -249,6 +250,11 @@ def createPulseDesign(ledLen):
     #gsList = [gsr, gsg, gsb]
     return gsList
 
+#test whether M-F and 9am-5pm
+def officeHours():
+	dt = datetime.datetime.today()
+	return	(0 <= dt.weekday() <= 4) and (9 <= dt.hour < 17)
+
 # MAIN LOOP ----------------------------------------------------------------
 
 # Init some stuff for speed selection of how long to show images
@@ -337,6 +343,7 @@ try:
 		if (currMode != Mode.soothe) and (time.time() - POVStartTime >= POVShowTime) :
 			currMode = Mode.soothe
 
+		"""
 		#temp speed checking stuff
 		gsr = pulses.PulseCtl(arrayLen=num_leds, startCtr= 72, width=25, rate=1.0, color=pulses.Color(255,0,0))
 		gsg = pulses.PulseCtl(arrayLen=num_leds, startCtr= 140, width=25, rate=1.0, color=pulses.Color(0,255,0))
@@ -345,7 +352,13 @@ try:
 		byter= pulses.byteArray(tmpr)  #make a bytearray
 		byteg= pulses.byteArray(tmpg)  #make a bytearray
 		#done speed stuff
+		"""
 
+		if not officeHours():  #turn off when not during office hours
+			strip.show(clearBuf)  #turn strip off
+			time.sleep(60)
+			continue
+			
 		#run the display
 		if lightpaint != None:
 			# Paint!
